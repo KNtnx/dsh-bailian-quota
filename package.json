@@ -1,0 +1,51 @@
+{
+  "name": "dsh-bailian-quota",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Aliyun Bailian Token Plan quota and token usage for DeepSeek Harness: monthly allowance from the official bl CLI, plus this machine's own token accounting.",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "docs",
+    "icon.svg",
+    "README.md",
+    "LICENSE",
+    "README.zh.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "dsh-plugin",
+    "bailian",
+    "qwen",
+    "token-plan",
+    "quota"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KNtnx/dsh-bailian-quota.git"
+  },
+  "homepage": "https://github.com/KNtnx/dsh-bailian-quota#readme",
+  "bugs": {
+    "url": "https://github.com/KNtnx/dsh-bailian-quota/issues"
+  }
+}

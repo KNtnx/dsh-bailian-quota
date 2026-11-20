@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Bailian quota",
+    "description": "Shows the Aliyun Bailian Token Plan monthly allowance in the composer tool row, opens a card with this machine's token usage, and charts stacked daily tokens in Settings. Quota comes from the official bl CLI; tokens are counted by DSH on this machine.",
+    "detail": "docs/DETAIL.md"
+  }
+}
