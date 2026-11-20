@@ -1,7 +1,6 @@
 {
   "name": "dsh-bailian-quota",
-  "version": "1.0.0",
-  "private": true,
+  "version": "1.0.1",
   "type": "module",
   "description": "Aliyun Bailian Token Plan quota and token usage for DeepSeek Harness: monthly allowance from the official bl CLI, plus this machine's own token accounting.",
   "exports": {
@@ -18,8 +17,7 @@
     "docs",
     "icon.svg",
     "README.md",
-    "LICENSE",
-    "README.zh.md"
+    "LICENSE"
   ],
   "dsh": {
     "bundle": {

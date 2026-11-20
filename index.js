@@ -145,31 +145,6 @@ function runBl() {
   })
 }
 
-/**
- * Run one `bl` subcommand and parse its JSON.
- * @param args - arguments after `bl`.
- * @returns the parsed JSON body.
- */
-function runBlJson(args) {
-  const bin = resolveBlPath()
-  const env = { ...process.env, PATH: `${dirname(bin)}:${process.env.PATH ?? ''}` }
-  return new Promise((resolve, reject) => {
-    execFile(bin, args, { timeout: 120_000, maxBuffer: 8 * 1024 * 1024, env, windowsHide: true }, (error, stdout, stderr) => {
-      if (error !== null) {
-        const text = String(stdout ?? '').trim()
-        const detailText = String(stderr ?? '').trim()
-        reject(new Error(detailText === '' ? text.slice(0, 200) || error.message : detailText.slice(0, 200)))
-        return
-      }
-      try {
-        resolve(JSON.parse(stdout))
-      } catch {
-        reject(new Error(`bl 输出不是合法 JSON：${String(stdout).slice(0, 160)}`))
-      }
-    })
-  })
-}
-
 /* ------------------------------------------------------------------ */
 /* Local token accounting                                             */
 /* ------------------------------------------------------------------ */
@@ -444,18 +419,12 @@ const snapshot = {
 /** The CLI run currently in flight, if any. */
 let inflight
 
-/** Last diagnostic line the browser reported, for troubleshooting a mount. */
-const diagnostics = { at: 0, lines: [] }
-
 /**
  * Token-level detail folded from this machine's own session events. It costs
  * no network round trip, but it is kept behind its own route so the monthly
  * percentage stays a single fast CLI read.
  */
-const detail = { at: 0, data: null, error: null, inflight: undefined }
-
-/** Detail is recomputed on every read; the stamp only labels the card. */
-const DETAIL_TTL_MS = 0
+const detail = { at: 0, data: null, error: null }
 
 /**
  * Read the quota, reusing the cache unless forced.
@@ -522,32 +491,8 @@ function view() {
     stale: snapshot.data !== null && Date.now() - snapshot.updatedAt >= CACHE_MS,
     data: snapshot.data,
     error: snapshot.error,
-    diag: diagnostics.lines.slice(-20),
     history: snapshot.history.slice(-HISTORY_LIMIT),
   }
-}
-
-/**
- * GET /diag?m=... — let the Client report where its sidebar card got stuck.
- * Purely diagnostic: it changes no quota state and keeps the last 20 lines.
- */
-function diagHandler(req, res) {
-  if (!isLoopback(req)) {
-    writeJson(res, 403, { ok: false })
-    return
-  }
-  try {
-    const url = new URL(req.url ?? '/', 'http://127.0.0.1')
-    const message = (url.searchParams.get('m') ?? '').slice(0, 300)
-    if (message !== '') {
-      diagnostics.at = Date.now()
-      diagnostics.lines.push(`${new Date().toISOString()} ${message}`)
-      if (diagnostics.lines.length > 20) diagnostics.lines.splice(0, diagnostics.lines.length - 20)
-    }
-  } catch {
-    // A malformed query is not worth failing the request over.
-  }
-  writeJson(res, 200, { ok: true, at: diagnostics.at, lines: diagnostics.lines })
 }
 
 /**
@@ -586,7 +531,6 @@ async function detailHandler(req, res) {
   writeJson(res, 200, {
     ok: detail.data !== null,
     updatedAt: detail.at,
-    stale: detail.data !== null && Date.now() - detail.at >= DETAIL_TTL_MS,
     ...(detail.data ?? {}),
     error: detail.error,
   })
@@ -627,7 +571,6 @@ export function apply(ctx) {
     const disposers = [
       ctx.webServer.register({ kind: 'exact', path: `${API_PREFIX}/state`, handler: stateHandler }),
       ctx.webServer.register({ kind: 'exact', path: `${API_PREFIX}/refresh`, handler: refreshHandler }),
-      ctx.webServer.register({ kind: 'exact', path: `${API_PREFIX}/diag`, handler: diagHandler }),
       ctx.webServer.register({ kind: 'exact', path: `${API_PREFIX}/detail`, handler: detailHandler }),
     ]
     return () => {

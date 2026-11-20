@@ -6,6 +6,16 @@
 
 > English summary at the bottom.
 
+## 预览
+
+点开工具行的胶囊，是一张 Token 用量 + 套餐额度的卡片：
+
+<img src="docs/popover.png" alt="胶囊弹层：Token 用量与套餐额度" width="380">
+
+设置页可以切换统计窗口，并按天看三段堆叠的 token 图表（悬停出当日明细）：
+
+<img src="docs/settings.png" alt="设置页：窗口选择与每日 Token 图表" width="640">
+
 ## 它解决什么
 
 Token Plan 的专属 API Key（`sk-sp-` 开头）只能调用模型，**查不了额度**；控制台也没有公开的额度接口。本插件走**官方 CLI**：
