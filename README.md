@@ -129,6 +129,14 @@ docs/DETAIL.md      插件详情页
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE) © 2026 KNtnx · 可自由使用、修改与再分发，保留版权与许可声明即可。
+
+本项目只是一个读取官方 CLI 结果的界面封装：额度归阿里云百炼，DSH 归 DeepSeek。
+
+---
+
+<div align="center">
 
 [![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/deepseek-ai/deepseek-harness)
+
+</div>

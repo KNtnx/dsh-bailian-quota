@@ -129,6 +129,14 @@ docs/DETAIL.md      detail page
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE) © 2026 KNtnx · free to use, modify and redistribute, provided the copyright and licence notice stay in place.
+
+This project is only a UI over the official CLI: the quota belongs to Aliyun Bailian, and DSH belongs to DeepSeek.
+
+---
+
+<div align="center">
 
 [![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/deepseek-ai/deepseek-harness)
+
+</div>
