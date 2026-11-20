@@ -16,19 +16,24 @@ A `Plan 1.24%` pill in the composer row opens a card with token usage and the mo
 
 </div>
 
-<p align="center">
-  <img src="docs/popover.png" width="380" alt="Popover: token usage and plan allowance"/>
-</p>
+<table>
+<tr>
+<td valign="top">
 
 ## Why it exists
 
-A Token Plan key (`sk-sp-…`) can call models but **cannot read its own allowance**, and the console exposes no public quota API. This plugin reuses the official CLI session you already have:
+A Token Plan key (`sk-sp-…`) can call models but **cannot read its own allowance**, and the console exposes no public quota API. This plugin reuses the official CLI session you already have and reads what this command prints:
 
-```bash
-bl usage token-plan --output json
-```
+<pre><code>bl usage token-plan --output json</code></pre>
 
 It **never reads, stores, or transmits an API key**, and never touches `~/.bailian/config.json`.
+
+</td>
+<td valign="top" width="360">
+<img src="docs/popover.png" width="340" alt="Popover: token usage and plan allowance"/>
+</td>
+</tr>
+</table>
 
 ## What you get
 

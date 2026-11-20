@@ -16,19 +16,24 @@
 
 </div>
 
-<p align="center">
-  <img src="docs/popover.png" width="380" alt="胶囊弹层：Token 用量与套餐额度"/>
-</p>
+<table>
+<tr>
+<td valign="top">
 
 ## 为什么需要它
 
-Token Plan 的专属 API Key（`sk-sp-` 开头）**只能调用模型，查不了额度**，控制台也没有公开的额度接口。本插件复用你已经登录的官方 CLI：
+Token Plan 的专属 API Key（`sk-sp-` 开头）**只能调用模型，查不了额度**，控制台也没有公开的额度接口。本插件复用你已经登录的官方 CLI，读取下面这条命令的结果：
 
-```bash
-bl usage token-plan --output json
-```
+<pre><code>bl usage token-plan --output json</code></pre>
 
 它**不读取、不保存、不传输任何 API Key**，也不会碰 `~/.bailian/config.json`。
+
+</td>
+<td valign="top" width="360">
+<img src="docs/popover.png" width="340" alt="胶囊弹层：Token 用量与套餐额度"/>
+</td>
+</tr>
+</table>
 
 ## 功能
 
