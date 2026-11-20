@@ -56,6 +56,8 @@ window.__ModuleLoader__.load({
       windowMonth: '本月',
       windowLastMonth: '上月',
       windowCustom: '自定义',
+      allModels: '全部模型',
+      modelsFilter: '按模型查看',
       from: '开始',
       to: '结束',
       trend: '每日 Token 消耗',
@@ -99,6 +101,8 @@ window.__ModuleLoader__.load({
       windowMonth: 'This month',
       windowLastMonth: 'Last month',
       windowCustom: 'Custom',
+      allModels: 'All models',
+      modelsFilter: 'Filter by model',
       from: 'From',
       to: 'To',
       trend: 'Tokens per day',
@@ -212,15 +216,18 @@ window.__ModuleLoader__.load({
       return { preset: '7', from: dayKey(midnight(-6)), to: dayKey(midnight(0)) }
     }
 
-    /** Read the stored window, falling back to the default on any damage. */
+    /** Read the stored choice (window + model filter), falling back on damage. */
     function readWindow() {
       try {
         const parsed = JSON.parse(localStorage.getItem(WINDOW_KEY) ?? 'null')
         if (parsed !== null && typeof parsed === 'object' && typeof parsed.preset === 'string') {
+          const models = Array.isArray(parsed.models) ? parsed.models.filter((value) => typeof value === 'string') : []
           if (parsed.preset === 'custom') {
-            if (/^\d{4}-\d{2}-\d{2}$/.test(parsed.from ?? '') && /^\d{4}-\d{2}-\d{2}$/.test(parsed.to ?? '')) return parsed
+            if (/^\d{4}-\d{2}-\d{2}$/.test(parsed.from ?? '') && /^\d{4}-\d{2}-\d{2}$/.test(parsed.to ?? '')) {
+              return { ...parsed, models }
+            }
           } else {
-            return { ...rangeOf(parsed.preset), preset: parsed.preset }
+            return { ...rangeOf(parsed.preset), preset: parsed.preset, models }
           }
         }
       } catch {
@@ -346,13 +353,15 @@ window.__ModuleLoader__.load({
     }
 
     /** Read the Host's replay for one window. */
-    function useDetail(active, range) {
+    function useDetail(active, range, models) {
       const [detail, setDetail] = useState({ status: 'idle' })
       const [busy, setBusy] = useState(false)
+      const modelKey = (models ?? []).join(',')
       const load = useCallback(async (force) => {
         setBusy(true)
         try {
-          const query = `from=${range.from}&to=${range.to}`
+          const modelQuery = modelKey === '' ? '' : `&models=${encodeURIComponent(modelKey)}`
+          const query = `from=${range.from}&to=${range.to}${modelQuery}`
           const response = await fetch(`/api/bailian-quota/detail?${query}`, {
             method: force ? 'POST' : 'GET',
             headers: { accept: 'application/json' },
@@ -365,10 +374,17 @@ window.__ModuleLoader__.load({
         } finally {
           setBusy(false)
         }
-      }, [range.from, range.to])
+      }, [range.from, range.to, modelKey])
       useEffect(() => {
         if (!active) return
         void load(false)
+        const timer = setInterval(() => { void load(false) }, 60_000)
+        const onVisible = () => { if (document.visibilityState === 'visible') void load(false) }
+        document.addEventListener('visibilitychange', onVisible)
+        return () => {
+          clearInterval(timer)
+          document.removeEventListener('visibilitychange', onVisible)
+        }
       }, [active, load])
       return { detail, busy, reload: () => load(true) }
     }
@@ -402,6 +418,16 @@ window.__ModuleLoader__.load({
 .blq-kv:last-child{border-bottom:0}
 .blq-kv span{font-size:11.5px;color:var(--dsw-alias-label-tertiary)}
 .blq-kv b{margin-left:auto;font-size:12px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
+.blq-kv-btn{width:100%;border:0;background:transparent;font:inherit;color:inherit;cursor:pointer;padding:4px 0;text-align:left}
+.blq-kv-btn:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.blq-caret{width:6px;height:6px;margin-left:6px;border-right:1.5px solid var(--dsw-alias-label-tertiary);border-bottom:1.5px solid var(--dsw-alias-label-tertiary);transform:rotate(45deg) translateY(-2px);flex:none}
+.blq-modellist{display:flex;flex-direction:column;gap:1px;margin:2px 0 4px;padding:4px;border-radius:8px;background:rgba(128,128,128,.06)}
+.blq-model{display:flex;align-items:baseline;gap:8px;padding:4px 6px;border:0;border-radius:6px;background:transparent;font:inherit;font-size:11px;color:var(--dsw-alias-label-secondary);cursor:pointer;text-align:left}
+.blq-model:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.blq-model[data-active="true"]{color:#4d6bfe;background:rgba(77,107,254,.10)}
+.blq-model span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.blq-model b{margin-left:auto;font-weight:500;font-variant-numeric:tabular-nums}
+.blq-chips-models{margin-top:-6px}
 .blq-planline{display:flex;align-items:baseline;gap:8px;margin:2px 0 4px}
 .blq-planline b{font-size:19.5px;line-height:1.15;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
 .blq-planline b[data-tone="warm"]{color:#b3821c}
@@ -639,7 +665,8 @@ window.__ModuleLoader__.load({
      * The card the pill opens: the shared token window, then the monthly
      * allowance. Read-only for the window — the Settings page owns that choice.
      */
-    function QuotaPopover({ t, anchor, onClose, data, detail, detailBusy, windowLabel, onRefresh, onRefreshDetail }) {
+    function QuotaPopover({ t, anchor, onClose, data, detail, detailBusy, windowLabel, choice, choose, selectedModels, onRefresh, onRefreshDetail }) {
+      const [modelsOpen, setModelsOpen] = useState(false)
       const [style, setStyle] = useState({ top: 0, left: 0, visibility: 'hidden' })
       useEffect(() => {
         const place = () => {
@@ -672,6 +699,9 @@ window.__ModuleLoader__.load({
 
       const used = data?.usedFraction ?? 0
       const local = detail?.local
+      const modelSummaryLabel = selectedModels.length === 0
+        ? String(local?.models ?? 0)
+        : `${selectedModels.length} / ${local?.allModels?.length ?? selectedModels.length}`
       /** One table row: muted label on the left, value flush right. */
       const row = (label, value, key) => h('div', { className: 'blq-kv', key: key ?? label },
         h('span', null, label),
@@ -697,7 +727,38 @@ window.__ModuleLoader__.load({
                   h('span', null, 'tokens')),
                 h('div', { className: 'blq-table' },
                   row(t('calls'), local?.calls ?? 0),
-                  row(t('modelsCalled'), local?.models ?? 0),
+                  h('button', {
+                    type: 'button', className: 'blq-kv blq-kv-btn',
+                    'aria-expanded': modelsOpen ? 'true' : 'false',
+                    onClick: () => setModelsOpen((value) => !value),
+                  },
+                    h('span', null, t('modelsCalled')),
+                    h('b', null, modelSummaryLabel),
+                    h('i', { className: 'blq-caret' })),
+                  modelsOpen
+                    ? h('div', { className: 'blq-modellist' },
+                        h('button', {
+                          type: 'button', className: 'blq-model',
+                          'data-active': String(selectedModels.length === 0),
+                          onClick: () => choose({ ...choice, models: [] }),
+                        },
+                          h('span', null, t('allModels')),
+                          h('b', null, tokens(local?.allModels?.reduce((sum, row2) => sum + row2.tokens, 0)))),
+                        (local?.allModels ?? []).map((entrySecond) => h('button', {
+                          type: 'button',
+                          className: 'blq-model',
+                          key: entrySecond.model,
+                          'data-active': String(selectedModels.includes(entrySecond.model)),
+                          onClick: () => choose({
+                            ...choice,
+                            models: selectedModels.includes(entrySecond.model)
+                              ? selectedModels.filter((name) => name !== entrySecond.model)
+                              : [...selectedModels, entrySecond.model],
+                          }),
+                        },
+                          h('span', null, entrySecond.model),
+                          h('b', null, tokens(entrySecond.tokens)))))
+                    : null,
                   row(t('window'), windowLabel))),
         h('div', { className: 'blq-sechead blq-sechead-gap' }, h('b', null, t('title'))),
         h('div', { className: 'blq-planline' },
@@ -715,11 +776,11 @@ window.__ModuleLoader__.load({
     function QuotaPill(props) {
       const t = useTranslator(props?.t)
       const { state, busy, refresh } = useQuota()
-      const [choice] = useWindowChoice()
+      const [choice, choose] = useWindowChoice()
       const range = useMemo(() => (choice.preset === 'custom' ? { from: choice.from, to: choice.to } : rangeOf(choice.preset)), [choice])
       const [open, setOpen] = useState(false)
       const anchor = useRef(null)
-      const { detail, busy: detailBusy, reload } = useDetail(open, range)
+      const { detail, busy: detailBusy, reload } = useDetail(open, range, choice.models)
       const close = useCallback(() => setOpen(false), [])
       if (!planIsLive(state)) return null
       const used = state.data.usedFraction ?? 0
@@ -749,6 +810,9 @@ window.__ModuleLoader__.load({
               detail,
               detailBusy,
               windowLabel,
+              choice,
+              choose,
+              selectedModels: choice.models ?? [],
               onRefresh: () => { void refresh() },
               onRefreshDetail: () => { void reload() },
             }), document.body)
@@ -795,13 +859,39 @@ window.__ModuleLoader__.load({
           : null)
     }
 
+    /** Model chips: all models, or a multi-select that narrows the totals and the chart. */
+    function ModelPicker({ t, choice, choose, models }) {
+      const rows = Array.isArray(models) ? models : []
+      const selected = choice.models ?? []
+      if (rows.length <= 1) return null
+      const toggle = (model) => {
+        const next = selected.includes(model)
+          ? selected.filter((name) => name !== model)
+          : [...selected, model]
+        choose({ ...choice, models: next })
+      }
+      return h('div', { className: 'blq-chips blq-chips-models' },
+        h('button', {
+          type: 'button', className: 'blq-chip', 'data-active': String(selected.length === 0),
+          onClick: () => choose({ ...choice, models: [] }),
+        }, t('allModels')),
+        rows.map((entry) => h('button', {
+          type: 'button',
+          key: entry.model,
+          className: 'blq-chip',
+          title: `${entry.model} · ${tokens(entry.tokens)} · ${entry.calls} ${t('calls')}`,
+          'data-active': String(selected.includes(entry.model)),
+          onClick: () => toggle(entry.model),
+        }, `${entry.model} · ${tokens(entry.tokens)}`)))
+    }
+
     /** The Settings page: window picker, token totals with the daily chart, plan rows. */
     function QuotaPanel(props) {
       const t = useTranslator(props?.t)
       const { state, busy, refresh } = useQuota()
       const [choice, choose] = useWindowChoice()
       const range = useMemo(() => (choice.preset === 'custom' ? { from: choice.from, to: choice.to } : rangeOf(choice.preset)), [choice])
-      const { detail, busy: detailBusy, reload } = useDetail(true, range)
+      const { detail, busy: detailBusy, reload } = useDetail(true, range, choice.models)
       const local = detail?.local
       const used = state.data?.usedFraction ?? 0
 
@@ -844,6 +934,7 @@ window.__ModuleLoader__.load({
           h('span', { className: 'blq-spacer' }),
           h('span', null, `${range.from} → ${range.to}`)),
         h(WindowPicker, { t, choice, choose }),
+        h(ModelPicker, { t, choice, choose, models: local?.allModels }),
         detail?.status === 'error'
           ? h('div', { className: 'blq-error' }, h('span', null, `${t('detailError')}: ${detail.error ?? ''}`))
           : h(React.Fragment, null,

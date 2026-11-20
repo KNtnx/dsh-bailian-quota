@@ -312,55 +312,86 @@ async function replayLocalUsage(fromMs, toMs) {
  * @param fromMs - inclusive lower bound.
  * @param toMs - inclusive upper bound.
  */
-async function summarizeRange(fromMs, toMs) {
+async function summarizeRange(fromMs, toMs, selectedModels) {
   const files = await replayLocalUsage(fromMs, toMs)
   const wanted = new Set()
   for (let cursor = fromMs; cursor <= toMs; cursor += 86_400_000) wanted.add(localDayKey(cursor))
 
-  const series = []
-  const byProvider = new Map()
-  const models = new Set()
-  let totalTokens = 0
-  let calls = 0
+  // day → model → bucket, so a selection can be summed after the fact.
   const perDay = new Map()
+  const modelTotals = new Map()
+  const byProvider = new Map()
   for (const entry of Object.values(files)) {
     for (const [day, buckets] of Object.entries(entry.days ?? {})) {
       if (!wanted.has(day)) continue
-      const row = perDay.get(day) ?? { date: day, tokens: 0, calls: 0, input: 0, cacheRead: 0, output: 0 }
+      const dayBucket = perDay.get(day) ?? new Map()
       for (const [key, bucket] of Object.entries(buckets)) {
         const slash = key.indexOf('/')
         const provider = slash === -1 ? key : key.slice(0, slash)
-        const model = slash === -1 ? '' : key.slice(slash + 1)
+        const model = slash === -1 ? 'unknown' : key.slice(slash + 1)
         if (!PLAN_PROVIDER_PATTERN.test(provider)) continue
-        row.tokens += bucket.tokens
-        row.calls += bucket.calls
-        row.input += bucket.input ?? 0
-        row.cacheRead += bucket.cacheRead ?? 0
-        row.output += bucket.output ?? 0
-        totalTokens += bucket.tokens
-        calls += bucket.calls
-        if (model !== '') models.add(model)
+        const cell = dayBucket.get(model) ?? { tokens: 0, calls: 0, input: 0, cacheRead: 0, output: 0 }
+        cell.tokens += bucket.tokens
+        cell.calls += bucket.calls
+        cell.input += bucket.input ?? 0
+        cell.cacheRead += bucket.cacheRead ?? 0
+        cell.output += bucket.output ?? 0
+        dayBucket.set(model, cell)
+
+        const total = modelTotals.get(model) ?? { model, tokens: 0, calls: 0 }
+        total.tokens += bucket.tokens
+        total.calls += bucket.calls
+        modelTotals.set(model, total)
+
         const providerRow = byProvider.get(provider) ?? { provider, tokens: 0, calls: 0 }
         providerRow.tokens += bucket.tokens
         providerRow.calls += bucket.calls
         byProvider.set(provider, providerRow)
       }
-      perDay.set(day, row)
+      perDay.set(day, dayBucket)
     }
   }
-  // Every day of the window appears, zero or not: the chart's x axis has to
-  // line up with the dates the picker shows, not with the days that happen to
-  // carry usage.
+
+  const allModels = [...modelTotals.values()].sort((left, right) => right.tokens - left.tokens)
+  const known = new Set(allModels.map((row) => row.model))
+  // An unknown name in the query would silently blank the chart; fall back to
+  // everything instead.
+  const active = Array.isArray(selectedModels) && selectedModels.length > 0
+    ? selectedModels.filter((model) => known.has(model))
+    : []
+  const activeSet = new Set(active)
+  const isAll = activeSet.size === 0
+
+  const series = []
+  let totalTokens = 0
+  let calls = 0
   for (const day of [...wanted].sort()) {
-    series.push(perDay.get(day) ?? { date: day, tokens: 0, calls: 0, input: 0, cacheRead: 0, output: 0 })
+    const cellMap = perDay.get(day)
+    const row = { date: day, tokens: 0, calls: 0, input: 0, cacheRead: 0, output: 0 }
+    if (cellMap !== undefined) {
+      for (const [model, cell] of cellMap) {
+        if (!isAll && !activeSet.has(model)) continue
+        row.tokens += cell.tokens
+        row.calls += cell.calls
+        row.input += cell.input
+        row.cacheRead += cell.cacheRead
+        row.output += cell.output
+      }
+    }
+    totalTokens += row.tokens
+    calls += row.calls
+    series.push(row)
   }
+
   return {
     from: localDayKey(fromMs),
     to: localDayKey(toMs),
     days: Math.max(1, Math.round((toMs - fromMs) / 86_400_000) + 1),
     totalTokens,
     calls,
-    models: models.size,
+    models: isAll ? allModels.length : activeSet.size,
+    selected: isAll ? [] : active,
+    allModels,
     byProvider: [...byProvider.values()].sort((left, right) => right.tokens - left.tokens).slice(0, 4),
     series,
   }
@@ -372,18 +403,18 @@ async function summarizeRange(fromMs, toMs) {
  * @param fromMs - inclusive lower bound.
  * @param toMs - inclusive upper bound.
  */
-function localSummary(force, fromMs, toMs) {
-  const key = `${fromMs}|${toMs}`
+function localSummary(force, fromMs, toMs, selectedModels) {
+  const key = `${fromMs}|${toMs}|${(selectedModels ?? []).join(',')}`
   const cached = local.cache.get(key)
   if (!force && cached !== undefined && Date.now() - cached.at < LOCAL_TTL_MS) return Promise.resolve(cached.value)
   const running = local.inflight.get(key)
   if (running !== undefined) return running
-  const started = summarizeRange(fromMs, toMs)
+  const started = summarizeRange(fromMs, toMs, selectedModels)
     .then((value) => {
       local.cache.set(key, { at: Date.now(), value })
       return value
     })
-    .catch(() => ({ from: localDayKey(fromMs), to: localDayKey(toMs), days: 1, totalTokens: 0, calls: 0, models: 0, byProvider: [], series: [] }))
+    .catch(() => ({ from: localDayKey(fromMs), to: localDayKey(toMs), days: 1, totalTokens: 0, calls: 0, models: 0, allModels: [], byProvider: [], series: [] }))
     .finally(() => {
       local.inflight.delete(key)
     })
@@ -397,8 +428,8 @@ function localSummary(force, fromMs, toMs) {
  * @param fromMs - inclusive lower bound.
  * @param toMs - inclusive upper bound.
  */
-async function readDetail(force, fromMs, toMs) {
-  const summary = await localSummary(force, fromMs, toMs)
+async function readDetail(force, fromMs, toMs, selectedModels) {
+  const summary = await localSummary(force, fromMs, toMs, selectedModels)
   detail.at = Date.now()
   detail.error = null
   detail.data = { local: summary }
@@ -527,7 +558,15 @@ async function detailHandler(req, res) {
     // A malformed query keeps the default week.
   }
   if (fromMs > toMs) [fromMs, toMs] = [toMs, fromMs]
-  await readDetail(req.method === 'POST', fromMs, toMs)
+  let selectedModels = []
+  try {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1')
+    const raw = url.searchParams.get('models') ?? ''
+    selectedModels = raw.split(',').map((value) => value.trim()).filter((value) => value !== '' && value.length <= 120).slice(0, 12)
+  } catch {
+    // Keep "all models" on a malformed query.
+  }
+  await readDetail(req.method === 'POST', fromMs, toMs, selectedModels)
   writeJson(res, 200, {
     ok: detail.data !== null,
     updatedAt: detail.at,

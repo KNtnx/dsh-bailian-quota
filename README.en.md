@@ -33,7 +33,9 @@ It **never reads, stores, or transmits an API key**, and never touches `~/.baili
 
 - **Composer pill**: `Plan 1.24%`, two decimals. The dot shifts colour as the month fills (green <70%, amber ≥70%, orange ≥90%, red ≥100%). When the plan expires, the CLI is logged out, or the console returns no quota, the pill **renders nothing** — no empty slot, no squeezed permission or model labels.
 - **Popover on click**: this machine's token usage (total, calls, models, window) plus the allowance (used, left, reset time, countdown). Closes on `Esc` or an outside click.
+- **Per-model view**: a row of model chips in Settings (`All models`, or pick any subset); the popover's *Models called* row opens the same switch inline. Totals, call counts and the chart all follow the filter.
 - **Settings → Bailian quota**: window presets `Today / Last 7 days / Last 30 days / This month / Last month / Custom dates`; a three-segment stacked bar chart (cached input / uncached input / output) with a per-day hover card; and an allowance card with a progress bar and detail rows.
+- **Auto refresh**: both surfaces re-read every 60 seconds, and again whenever the window becomes visible.
 
 <p align="center">
   <img src="docs/settings.png" width="620" alt="Settings: window presets and daily token chart"/>
