@@ -187,9 +187,9 @@ window.__ModuleLoader__.load({
     /** Severity of an allowance, used for the dot, bar and figures. */
     function tone(fraction) {
       if (typeof fraction !== 'number' || !Number.isFinite(fraction)) return 'calm'
-      if (fraction >= 1) return 'over'
-      if (fraction >= 0.9) return 'hot'
-      if (fraction >= 0.7) return 'warm'
+      if (fraction >= 0.9) return 'over'
+      if (fraction >= 0.7) return 'hot'
+      if (fraction >= 0.5) return 'warm'
       return 'calm'
     }
 
