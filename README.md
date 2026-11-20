@@ -11,8 +11,7 @@
 [中文](README.md) · [English](README.en.md)
 
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License"></a>
-<img src="https://img.shields.io/badge/DSH-web%20profile-4d6bfe?style=flat-square" alt="DSH">
-<img src="https://img.shields.io/badge/data-official%20bl%20CLI-informational?style=flat-square" alt="bl CLI">
+<a href="https://github.com/deepseek-ai/deepseek-harness"><img src="https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white" alt="powered by dsh"></a>
 
 </div>
 
@@ -129,14 +128,4 @@ docs/DETAIL.md      插件详情页
 
 ## License
 
-[MIT](LICENSE) © 2026 KNtnx · 可自由使用、修改与再分发，保留版权与许可声明即可。
-
-本项目只是一个读取官方 CLI 结果的界面封装：额度归阿里云百炼，DSH 归 DeepSeek。
-
----
-
-<div align="center">
-
-[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/deepseek-ai/deepseek-harness)
-
-</div>
+除特别说明外，本仓库以 [MIT](LICENSE) 授权。

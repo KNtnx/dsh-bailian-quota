@@ -11,8 +11,7 @@ A `Plan 1.24%` pill in the composer row opens a card with token usage and the mo
 [中文](README.md) · English
 
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License"></a>
-<img src="https://img.shields.io/badge/DSH-web%20profile-4d6bfe?style=flat-square" alt="DSH">
-<img src="https://img.shields.io/badge/data-official%20bl%20CLI-informational?style=flat-square" alt="bl CLI">
+<a href="https://github.com/deepseek-ai/deepseek-harness"><img src="https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white" alt="powered by dsh"></a>
 
 </div>
 
@@ -129,14 +128,4 @@ docs/DETAIL.md      detail page
 
 ## License
 
-[MIT](LICENSE) © 2026 KNtnx · free to use, modify and redistribute, provided the copyright and licence notice stay in place.
-
-This project is only a UI over the official CLI: the quota belongs to Aliyun Bailian, and DSH belongs to DeepSeek.
-
----
-
-<div align="center">
-
-[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/deepseek-ai/deepseek-harness)
-
-</div>
+Unless stated otherwise, this repository is licensed under [MIT](LICENSE).
