@@ -283,6 +283,9 @@ window.__ModuleLoader__.load({
       return [value, choose]
     }
 
+    /** Presets offered in the card's window menu, in display order. */
+    const POPOVER_WINDOWS = ['today', '7', '30', 'month', 'lastMonth', 'custom']
+
     /** Preset id → the locale key naming it. */
     const WINDOW_LABEL_KEYS = {
       today: 'windowToday',
@@ -430,6 +433,8 @@ window.__ModuleLoader__.load({
 .blq-model span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .blq-model b{margin-left:auto;font-weight:500;font-variant-numeric:tabular-nums}
 .blq-chips-models{margin-top:-6px}
+.blq-daterow{display:flex;flex-direction:column;gap:4px;margin:2px 0 4px;padding:0 2px}
+.blq-daterow .blq-date{height:24px;font-size:11px;width:100%}
 .blq-planline{display:flex;align-items:baseline;gap:8px;margin:2px 0 4px}
 .blq-planline b{font-size:19.5px;line-height:1.15;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
 .blq-planline b[data-tone="warm"]{color:#b3821c}
@@ -669,6 +674,7 @@ window.__ModuleLoader__.load({
      */
     function QuotaPopover({ t, anchor, onClose, data, detail, detailBusy, windowLabel, choice, choose, selectedModels, onRefresh, onRefreshDetail }) {
       const [modelsOpen, setModelsOpen] = useState(false)
+      const [windowOpen, setWindowOpen] = useState(false)
       const [style, setStyle] = useState({ top: 0, left: 0, visibility: 'hidden' })
       useEffect(() => {
         const place = () => {
@@ -762,7 +768,40 @@ window.__ModuleLoader__.load({
                           h('span', null, entrySecond.model),
                           h('b', null, tokens(entrySecond.tokens)))))
                     : null,
-                  row(t('window'), windowLabel))),
+                  h('button', {
+                    type: 'button', className: 'blq-kv blq-kv-btn',
+                    'aria-expanded': windowOpen ? 'true' : 'false',
+                    onClick: () => setWindowOpen((value) => !value),
+                  },
+                    h('span', null, t('window')),
+                    h('span', { className: 'blq-kv-value' },
+                      h('b', null, windowLabel),
+                      h('i', { className: 'blq-caret' }))),
+                  windowOpen
+                    ? h('div', { className: 'blq-modellist' },
+                        POPOVER_WINDOWS.map((preset) => h('button', {
+                          type: 'button',
+                          key: preset,
+                          className: 'blq-model',
+                          'data-active': String(choice.preset === preset),
+                          onClick: () => choose({
+                            ...choice,
+                            preset,
+                            ...(preset === 'custom' ? { from: range.from, to: range.to } : rangeOf(preset)),
+                          }),
+                        }, h('span', null, t(WINDOW_LABEL_KEYS[preset])))),
+                        choice.preset === 'custom'
+                          ? h('div', { className: 'blq-daterow' },
+                              h('input', {
+                                className: 'blq-date', type: 'date', value: choice.from, 'aria-label': t('from'),
+                                onChange: (event) => choose({ ...choice, preset: 'custom', from: event.target.value }),
+                              }),
+                              h('input', {
+                                className: 'blq-date', type: 'date', value: choice.to, 'aria-label': t('to'),
+                                onChange: (event) => choose({ ...choice, preset: 'custom', to: event.target.value }),
+                              }))
+                          : null)
+                    : null)),
         h('div', { className: 'blq-sechead blq-sechead-gap' }, h('b', null, t('title'))),
         h('div', { className: 'blq-planline' },
           h('b', { 'data-tone': tone(used) }, percent(used)),
