@@ -22,6 +22,25 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync,
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 
+/**
+ * How a failed CLI read should be explained.
+ *
+ * The pill cannot vanish when the CLI breaks: the user would just see a
+ * number that never moves. Instead the failure is classified so the card can
+ * say what to do about it.
+ * @param message - the error text the CLI produced.
+ * @returns one of auth / missing / timeout / network / output / unknown.
+ */
+function classifyFailure(message) {
+  const text = String(message ?? '').toLowerCase()
+  if (/not logged in|login|unauthor|unauthorized|401|403|credential|expired|未登录|登录|鉴权|授权/.test(text)) return 'auth'
+  if (/enoent|not found|no such file|spawn .* enoent/.test(text)) return 'missing'
+  if (/timeout|timed out|etimedout|abort/.test(text)) return 'timeout'
+  if (/econn|enotfound|socket|network|dns|proxy|ssl|tls/.test(text)) return 'network'
+  if (/json|per1monthpercentage|输出/.test(text)) return 'output'
+  return 'unknown'
+}
+
 /** The web server service this plugin needs; without it the row stays inactive. */
 export const inject = ['webServer']
 
@@ -479,6 +498,10 @@ async function readDetail(force, fromMs, toMs, selectedModels) {
 
 /** Cached snapshot plus the in-flight run, so a burst of callers shares one CLI run. */
 const snapshot = {
+  /** Epoch ms of the last failed read, 0 when the last read succeeded. */
+  failedAt: 0,
+  /** Classification of the last failure, '' when healthy. */
+  failureKind: '',
   /** Epoch milliseconds of the last successful run, 0 when never. */
   updatedAt: 0,
   /** Last successful reading, or null. */
@@ -512,6 +535,8 @@ function readQuota(force) {
       snapshot.updatedAt = Date.now()
       snapshot.data = data
       snapshot.error = null
+      snapshot.failureKind = ''
+      snapshot.failedAt = 0
       const previous = snapshot.history.at(-1)
       const moved = previous !== undefined && Math.abs(previous.pct - data.usedFraction) >= HISTORY_MIN_DELTA
       if (previous === undefined || snapshot.updatedAt - previous.t >= HISTORY_MIN_GAP_MS || moved) {
@@ -522,6 +547,8 @@ function readQuota(force) {
     })
     .catch((error) => {
       snapshot.error = error instanceof Error ? error.message : String(error)
+      snapshot.failureKind = classifyFailure(snapshot.error)
+      snapshot.failedAt = Date.now()
     })
     .finally(() => {
       inflight = undefined
@@ -559,11 +586,14 @@ function writeJson(res, status, body) {
 /** The body both routes return. */
 function view() {
   return {
-    ok: snapshot.data !== null,
+    ok: snapshot.data !== null && snapshot.error === null,
     updatedAt: snapshot.updatedAt,
     stale: snapshot.data !== null && Date.now() - snapshot.updatedAt >= CACHE_MS,
     data: snapshot.data,
     error: snapshot.error,
+    failureKind: snapshot.failureKind,
+    failedAt: snapshot.failedAt,
+    reading: inflight !== undefined,
     history: snapshot.history.slice(-HISTORY_LIMIT),
   }
 }

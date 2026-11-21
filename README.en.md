@@ -87,6 +87,14 @@ So the token figures mean "Token Plan calls this machine sent through DSH". They
 
 The console's usage-detail page (total tokens, cache hit rate) belongs to the Token Plan product and has no `bl` command; `bl usage stats` reports the pay-as-you-go workspace, which is a different set of calls. Neither is mixed in.
 
+## When the read fails
+
+A logged-out `bl`, a missing binary, a timeout or odd output never leaves the pill silently frozen:
+
+- the pill keeps the last figure but its dot turns red and carries a `!`, with the reason in its tooltip;
+- the card and the settings page show a strip inside the **plan allowance** block (e.g. "bl is not logged in" + "data from 2026/11/21 20:09" + a Retry button), with the raw message in the strip's `title`;
+- once the network or `bl auth login` is back, the next poll (≤30 s) or Retry clears it.
+
 ## Configuration
 
 | Setting | Default | Notes |

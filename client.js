@@ -71,6 +71,22 @@ window.__ModuleLoader__.load({
       errorTitle: '读取失败',
       errorHint: '确认已执行 bl auth login，且 bl 在 PATH 中；也可以用 DSH_BAILIAN_BL 指定可执行文件。',
       noQuota: '控制台没有返回配额数据，可能这个 key 不属于 Token Plan。',
+      failTitle: '读取失败',
+      failAuth: 'bl 未登录或登录已过期，请在终端执行 bl auth login',
+      failMissing: '找不到 bl 可执行文件，可设置 DSH_BAILIAN_BL 指向它',
+      failTimeout: 'bl 响应超时，稍后会自动重试',
+      failNetwork: '连不上百炼控制台，检查网络或代理',
+      failOutput: 'bl 输出异常，可能版本不匹配',
+      failUnknown: 'bl 报错，原因见下方原文',
+      failStale: '显示的是最后一次成功读取的数据',
+      retry: '重试',
+      shortAuth: 'bl 未登录或登录已过期',
+      shortMissing: '找不到 bl 可执行文件',
+      shortTimeout: 'bl 响应超时',
+      shortNetwork: '连不上百炼控制台',
+      shortOutput: 'bl 输出异常',
+      shortUnknown: 'bl 读取失败',
+      dataStopped: '数据停在',
     }
 
     const EN = {
@@ -116,6 +132,22 @@ window.__ModuleLoader__.load({
       errorTitle: 'Could not read the quota',
       errorHint: 'Make sure bl auth login has run and bl is on PATH, or set DSH_BAILIAN_BL to the executable.',
       noQuota: 'The console returned no quota rows; this key may not belong to a Token Plan.',
+      failTitle: 'Read failed',
+      failAuth: 'bl is not logged in or the session expired — run bl auth login in a terminal',
+      failMissing: 'bl binary not found; set DSH_BAILIAN_BL to its path',
+      failTimeout: 'bl timed out; it will retry automatically',
+      failNetwork: 'Cannot reach the Bailian console — check network or proxy',
+      failOutput: 'Unexpected bl output; the CLI version may have changed',
+      failUnknown: 'bl failed; the raw message is below',
+      failStale: 'Showing the last successful read',
+      retry: 'Retry',
+      shortAuth: 'bl is not logged in',
+      shortMissing: 'bl binary not found',
+      shortTimeout: 'bl timed out',
+      shortNetwork: 'console unreachable',
+      shortOutput: 'unexpected bl output',
+      shortUnknown: 'bl read failed',
+      dataStopped: 'data from',
     }
 
     /** Dictionary used when the slot handed no translator. */
@@ -182,6 +214,26 @@ window.__ModuleLoader__.load({
       if (days > 0) return `${days} 天 ${hours} 小时`
       if (hours > 0) return `${hours} 小时 ${minutes % 60} 分钟`
       return `${Math.max(1, minutes)} 分钟`
+    }
+
+    /** Locale key for the short form of a failure classification. */
+    const FAILURE_SHORT = {
+      auth: 'shortAuth',
+      missing: 'shortMissing',
+      timeout: 'shortTimeout',
+      network: 'shortNetwork',
+      output: 'shortOutput',
+      unknown: 'shortUnknown',
+    }
+
+    /** Locale key for a failure classification. */
+    const FAILURE_TEXT = {
+      auth: 'failAuth',
+      missing: 'failMissing',
+      timeout: 'failTimeout',
+      network: 'failNetwork',
+      output: 'failOutput',
+      unknown: 'failUnknown',
     }
 
     /** Severity of an allowance, used for the dot, bar and figures. */
@@ -298,8 +350,7 @@ window.__ModuleLoader__.load({
 
     /** Whether a snapshot describes a live plan. */
     function planIsLive(state) {
-      if (state?.status !== 'ready') return false
-      const data = state.data
+      const data = state?.data
       if (data === null || data === undefined) return false
       if (data.hasQuotaData === false) return false
       if (typeof data.resetAt === 'number' && data.resetAt > 0 && data.resetAt <= Date.now()) return false
@@ -324,9 +375,8 @@ window.__ModuleLoader__.load({
           })
           const body = await response.json()
           if (!alive.current) return
-          setState(body?.ok === true
-            ? { status: 'ready', ...body }
-            : { status: 'error', error: body?.error ?? 'unknown', ...body })
+          const hasData = body?.data !== null && body?.data !== undefined
+          setState({ status: hasData ? 'ready' : 'error', ...body, error: body?.error ?? null })
         } catch (error) {
           if (alive.current) setState({ status: 'error', error: error instanceof Error ? error.message : String(error) })
         }
@@ -453,6 +503,18 @@ window.__ModuleLoader__.load({
 .blq-sep{height:1px;margin:7px 0 5px;border:0;background:rgba(128,128,128,.12)}
 .blq-note{font-size:10.5px;line-height:1.4;color:var(--dsw-alias-label-tertiary)}
 .blq-foot{margin-top:10px;padding-top:8px;border-top:1px solid rgba(128,128,128,.12)}
+.blq-planalert{display:flex;align-items:flex-start;gap:7px;margin:2px 0 8px;padding:7px 9px;border-radius:7px;background:rgba(200,56,47,.06);border:1px solid rgba(200,56,47,.18)}
+.blq-planalert-wide{padding:9px 11px;margin:8px 0 2px}
+.blq-planalert div{display:flex;flex-direction:column;gap:1px;min-width:0}
+.blq-planalert b{font-size:11.5px;font-weight:600;color:#b4372f;line-height:1.3}
+.blq-planalert small{font-size:10px;color:var(--dsw-alias-label-tertiary);line-height:1.3}
+.blq-dot-warn{flex:none;width:6px;height:6px;margin-top:5px;border-radius:50%;background:#c8382f}
+.blq-link{margin-left:auto;flex:none;border:0;background:transparent;padding:0 2px;font:inherit;font-size:11px;line-height:1.4;color:#4d6bfe;cursor:pointer}
+.blq-link:hover{text-decoration:underline}
+.blq-btn-sm{height:22px;padding:0 9px;font-size:11px}
+.blq-pill[data-warn="true"]{border-color:rgba(200,56,47,.45)}
+.blq-pill[data-warn="true"] .blq-pill-dot{background:#c8382f}
+.blq-pill-warn{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:50%;background:#c8382f;color:#fff;font-size:9px;font-weight:700;line-height:1}
 .blq-skeleton{display:flex;flex-direction:column;gap:7px;padding:2px 0}
 .blq-skeleton i{display:block;height:10px;border-radius:5px;background:var(--dsw-alias-bg-skeleton)}
 
@@ -672,7 +734,7 @@ window.__ModuleLoader__.load({
      * The card the pill opens: the shared token window, then the monthly
      * allowance. Read-only for the window — the Settings page owns that choice.
      */
-    function QuotaPopover({ t, anchor, onClose, data, detail, detailBusy, windowLabel, choice, choose, selectedModels, onRefresh, onRefreshDetail }) {
+    function QuotaPopover({ t, anchor, onClose, data, state, detail, detailBusy, windowLabel, choice, choose, selectedModels, onRefresh, onRefreshDetail }) {
       const [modelsOpen, setModelsOpen] = useState(false)
       const [windowOpen, setWindowOpen] = useState(false)
       const [style, setStyle] = useState({ top: 0, left: 0, visibility: 'hidden' })
@@ -706,6 +768,9 @@ window.__ModuleLoader__.load({
       }, [anchor, onClose])
 
       const used = data?.usedFraction ?? 0
+      const failureKind = state?.failureKind ?? ''
+      const failing = failureKind !== ''
+      const failureHint = failing ? t(FAILURE_TEXT[failureKind] ?? 'failUnknown') : ''
       const local = detail?.local
       const modelSummaryLabel = selectedModels.length === 0
         ? String(local?.models ?? 0)
@@ -803,6 +868,14 @@ window.__ModuleLoader__.load({
                           : null)
                     : null)),
         h('div', { className: 'blq-sechead blq-sechead-gap' }, h('b', null, t('title'))),
+        failing
+          ? h('div', { className: 'blq-planalert', title: String(state.error ?? '') },
+              h('i', { className: 'blq-dot-warn' }),
+              h('div', null,
+                h('b', null, t(FAILURE_SHORT[failureKind] ?? 'shortUnknown')),
+                h('small', null, `${t('dataStopped')} ${stamp(state.updatedAt)} · ${t('failStale')}`)),
+              h('button', { type: 'button', className: 'blq-link', onClick: () => { void onRefresh() } }, t('retry')))
+          : null,
         h('div', { className: 'blq-planline' },
           h('b', { 'data-tone': tone(used) }, percent(used)),
           h('span', null, `${t('left')} ${percent(Math.max(0, 1 - used))}`)),
@@ -826,6 +899,9 @@ window.__ModuleLoader__.load({
       const close = useCallback(() => setOpen(false), [])
       if (!planIsLive(state)) return null
       const used = state.data.usedFraction ?? 0
+      const failureKind = state.failureKind ?? ''
+      const failing = failureKind !== ''
+      const failureHint = failing ? t(FAILURE_TEXT[failureKind] ?? 'failUnknown') : ''
       const windowLabel = t(WINDOW_LABEL_KEYS[choice.preset] ?? 'window7')
       const portal = typeof createPortal === 'function' && typeof document !== 'undefined'
       return h(React.Fragment, null,
@@ -835,20 +911,25 @@ window.__ModuleLoader__.load({
           type: 'button',
           className: 'blq-pill',
           'data-busy': String(busy),
-          'data-tone': tone(used),
+          'data-tone': failing ? 'stale' : tone(used),
+          'data-warn': String(failing),
           'aria-expanded': open ? 'true' : 'false',
-          title: `${t('planName')} · ${t('used')} ${percent(used)} · ${t('reset')} ${resetText(state.data)}`,
+          title: failing
+            ? `${t('failTitle')}：${failureHint}\n${state.error ?? ''}`
+            : `${t('planName')} · ${t('used')} ${percent(used)} · ${t('reset')} ${resetText(state.data)}`,
           onClick: () => setOpen((value) => !value),
         },
           h('i', { className: 'blq-pill-dot' }),
           h('span', null, t('pillLabel')),
-          h('b', null, percent(used))),
+          h('b', null, percent(used)),
+          failing ? h('span', { className: 'blq-pill-warn', 'aria-hidden': 'true' }, '!') : null),
         open && portal
           ? createPortal(h(QuotaPopover, {
               t,
               anchor,
               onClose: close,
               data: state.data,
+              state,
               detail,
               detailBusy,
               windowLabel,
@@ -947,6 +1028,8 @@ window.__ModuleLoader__.load({
           onClick: () => { void refresh(); void reload() },
         }, busy || detailBusy ? t('refreshing') : t('refresh')))
 
+      const failureKind = state.failureKind ?? ''
+      const failing = failureKind !== ''
       const quotaCard = state.status === 'error'
         ? h('div', { className: 'blq-error' },
             h('b', null, t('errorTitle')),
@@ -960,6 +1043,17 @@ window.__ModuleLoader__.load({
               h('b', { 'data-tone': tone(used) }, percent(used))),
             h('div', { className: 'blq-meter', 'data-tone': tone(used) },
               h('i', { style: { width: `${Math.min(100, Math.max(2, used * 100))}%` } })),
+            failing
+              ? h('div', { className: 'blq-planalert blq-planalert-wide', title: String(state.error ?? '') },
+                  h('i', { className: 'blq-dot-warn' }),
+                  h('div', null,
+                    h('b', null, t(FAILURE_SHORT[failureKind] ?? 'shortUnknown')),
+                    h('small', null, `${t(FAILURE_TEXT[failureKind] ?? 'failUnknown')} · ${t('dataStopped')} ${stamp(state.updatedAt)}`)),
+                  h('button', {
+                    type: 'button', className: 'blq-link',
+                    onClick: () => { void refresh(); void reload() },
+                  }, t('retry')))
+              : null,
             h('div', { className: 'blq-rows', style: { marginTop: '10px' } },
               h(Row, { label: t('plan'), value: t('planName') }),
               h(Row, { label: t('used'), value: percent(used) }),
