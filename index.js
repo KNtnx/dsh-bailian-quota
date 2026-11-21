@@ -219,6 +219,44 @@ function writeLocalCache() {
 }
 
 /**
+ * Newest mtime across the profile's session logs.
+ *
+ * The replay itself is cached, but a call that just finished only shows up
+ * once its log line is on disk. Statting the logs is cheap (no decompression),
+ * so every read compares this stamp and recomputes when the logs moved.
+ */
+function sessionStamp() {
+  const home = process.env.DSH_HOME ?? join(homedir(), '.dsh')
+  const root = join(home, 'sessions')
+  let newest = 0
+  const walk = (dir, depth) => {
+    if (depth > 3) return
+    let entries
+    try {
+      entries = readdirSync(dir, { withFileTypes: true })
+    } catch {
+      return
+    }
+    for (const entry of entries) {
+      const full = join(dir, entry.name)
+      if (entry.isDirectory()) {
+        walk(full, depth + 1)
+        continue
+      }
+      if (entry.name !== 'session.v4.jsonl.zstd') continue
+      try {
+        const stat = statSync(full)
+        if (stat.mtimeMs > newest) newest = stat.mtimeMs
+      } catch {
+        // A file that vanished mid-walk simply does not contribute.
+      }
+    }
+  }
+  walk(root, 0)
+  return newest
+}
+
+/**
  * Replay the profile's session logs into per-day buckets.
  * @param fromMs - inclusive lower bound.
  * @param toMs - inclusive upper bound.
@@ -405,13 +443,17 @@ async function summarizeRange(fromMs, toMs, selectedModels) {
  */
 function localSummary(force, fromMs, toMs, selectedModels) {
   const key = `${fromMs}|${toMs}|${(selectedModels ?? []).join(',')}`
+  const stamp = sessionStamp()
   const cached = local.cache.get(key)
-  if (!force && cached !== undefined && Date.now() - cached.at < LOCAL_TTL_MS) return Promise.resolve(cached.value)
+  // A newer log line beats the TTL: the card should not sit on a stale model
+  // list for a minute after a call completed.
+  const fresh = cached !== undefined && cached.stamp === stamp && Date.now() - cached.at < LOCAL_TTL_MS
+  if (!force && fresh) return Promise.resolve(cached.value)
   const running = local.inflight.get(key)
   if (running !== undefined) return running
   const started = summarizeRange(fromMs, toMs, selectedModels)
     .then((value) => {
-      local.cache.set(key, { at: Date.now(), value })
+      local.cache.set(key, { at: Date.now(), stamp: sessionStamp(), value })
       return value
     })
     .catch(() => ({ from: localDayKey(fromMs), to: localDayKey(toMs), days: 1, totalTokens: 0, calls: 0, models: 0, allModels: [], byProvider: [], series: [] }))

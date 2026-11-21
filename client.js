@@ -381,7 +381,7 @@ window.__ModuleLoader__.load({
       useEffect(() => {
         if (!active) return
         void load(false)
-        const timer = setInterval(() => { void load(false) }, 60_000)
+        const timer = setInterval(() => { void load(false) }, 30_000)
         const onVisible = () => { if (document.visibilityState === 'visible') void load(false) }
         document.addEventListener('visibilitychange', onVisible)
         return () => {
