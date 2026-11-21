@@ -418,9 +418,11 @@ window.__ModuleLoader__.load({
 .blq-kv:last-child{border-bottom:0}
 .blq-kv span{font-size:11.5px;color:var(--dsw-alias-label-tertiary)}
 .blq-kv b{margin-left:auto;font-size:12px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
-.blq-kv-btn{width:100%;border:0;background:transparent;font:inherit;color:inherit;cursor:pointer;padding:4px 0;text-align:left}
+.blq-kv-btn{width:100%;border:0;background:transparent;font:inherit;line-height:inherit;color:inherit;cursor:pointer;padding:4px 0;text-align:left;align-items:baseline}
 .blq-kv-btn:hover{background:var(--dsw-alias-interactive-bg-hover)}
-.blq-caret{width:6px;height:6px;margin-left:6px;border-right:1.5px solid var(--dsw-alias-label-tertiary);border-bottom:1.5px solid var(--dsw-alias-label-tertiary);transform:rotate(45deg) translateY(-2px);flex:none}
+.blq-kv-value{margin-left:auto;display:inline-flex;align-items:center;gap:4px}
+.blq-kv-value b{margin-left:0}
+.blq-caret{width:5px;height:5px;margin:0;border-right:1.5px solid var(--dsw-alias-label-tertiary);border-bottom:1.5px solid var(--dsw-alias-label-tertiary);transform:rotate(45deg) translate(-1px,-1px);flex:none}
 .blq-modellist{display:flex;flex-direction:column;gap:1px;margin:2px 0 4px;padding:4px;border-radius:8px;background:rgba(128,128,128,.06)}
 .blq-model{display:flex;align-items:baseline;gap:8px;padding:4px 6px;border:0;border-radius:6px;background:transparent;font:inherit;font-size:11px;color:var(--dsw-alias-label-secondary);cursor:pointer;text-align:left}
 .blq-model:hover{background:var(--dsw-alias-interactive-bg-hover)}
@@ -733,8 +735,9 @@ window.__ModuleLoader__.load({
                     onClick: () => setModelsOpen((value) => !value),
                   },
                     h('span', null, t('modelsCalled')),
-                    h('b', null, modelSummaryLabel),
-                    h('i', { className: 'blq-caret' })),
+                    h('span', { className: 'blq-kv-value' },
+                      h('b', null, modelSummaryLabel),
+                      h('i', { className: 'blq-caret' }))),
                   modelsOpen
                     ? h('div', { className: 'blq-modellist' },
                         h('button', {
