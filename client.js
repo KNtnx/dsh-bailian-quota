@@ -501,6 +501,7 @@ window.__ModuleLoader__.load({
 .blq-sechead{display:flex;align-items:baseline;gap:6px;margin:0 0 6px}
 .blq-sechead b{font-size:12px;font-weight:600;color:var(--dsw-alias-label-primary)}
 .blq-sechead span{margin-left:auto;font-size:10.5px;color:var(--dsw-alias-label-tertiary)}
+.blq-sechead span.blq-tag{margin-left:2px;font-size:9.5px;line-height:15px;color:var(--dsw-alias-label-tertiary)}
 .blq-sechead-gap{margin-top:12px}
 .blq-sep{height:1px;margin:7px 0 5px;border:0;background:rgba(128,128,128,.12)}
 .blq-note{font-size:10.5px;line-height:1.4;color:var(--dsw-alias-label-tertiary)}
