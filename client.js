@@ -46,6 +46,7 @@ window.__ModuleLoader__.load({
       countdown: '倒计时',
       localTitle: 'Token 用量',
       localBadge: 'DSH 统计',
+      badgeCli: 'bl CLI 统计',
       totalTokens: '总 token',
       calls: '成功调用',
       modelsCalled: '调用模型数',
@@ -107,6 +108,7 @@ window.__ModuleLoader__.load({
       countdown: 'Countdown',
       localTitle: 'Token usage',
       localBadge: 'DSH stats',
+      badgeCli: 'from bl CLI',
       totalTokens: 'Total tokens',
       calls: 'Successful calls',
       modelsCalled: 'Models called',
@@ -867,7 +869,7 @@ window.__ModuleLoader__.load({
                               }))
                           : null)
                     : null)),
-        h('div', { className: 'blq-sechead blq-sechead-gap' }, h('b', null, t('title'))),
+        h('div', { className: 'blq-sechead blq-sechead-gap' }, h('b', null, t('title')), h('span', { className: 'blq-tag' }, t('badgeCli'))),
         failing
           ? h('div', { className: 'blq-planalert', title: String(state.error ?? '') },
               h('i', { className: 'blq-dot-warn' }),
